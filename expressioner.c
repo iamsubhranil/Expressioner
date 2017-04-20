@@ -75,6 +75,7 @@ Symbol *tokenize(char *expression, size_t size){
 					bracketCount--;
 				}
 			}
+			
 
 			Symbol *operator;
 
@@ -101,7 +102,7 @@ Symbol *tokenize(char *expression, size_t size){
 					head = symbol;
 				else
 					prev->next = symbol;
-
+				prev = symbol;
 				buffer = NULL;
 				bufferSize = 0;
 			}
@@ -111,7 +112,14 @@ Symbol *tokenize(char *expression, size_t size){
 				else
 					prev->next = operator;
 			}
-			
+			if(isOperator(currentSymbol)){
+				char nextSymbol = *(expression+count+1);
+				char prevSymbol = *(prev->value);
+				if((!isalnum(prevSymbol) && prevSymbol!=')') || (nextSymbol!='(' && !isalnum(nextSymbol))){
+					printf("\nError : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s']\n", currentSymbol, prevSymbol, nextSymbol=='\n'?"(newline)":&nextSymbol);
+					exit(4);
+				}
+			}
 			prev = operator;
 		}
 		else if(currentSymbol==' '){
