@@ -55,6 +55,7 @@ Symbol *tokenize(char *expression, size_t size){
 	size_t count = 0;
 	char *buffer = NULL;
 	size_t bufferSize = 0;
+	size_t bracketCount = 0;
 	while(count<size-1){
 		char currentSymbol = *(expression+count);
 #ifdef SHOW_STEPS
@@ -64,6 +65,17 @@ Symbol *tokenize(char *expression, size_t size){
 #ifdef SHOW_STEPS
 			printf("\nBrace or operator found : %c", currentSymbol);	
 #endif
+			if(isBrace(currentSymbol)){
+				if(currentSymbol=='(' || currentSymbol=='{' || currentSymbol=='['){
+					currentSymbol = '(';
+					bracketCount++;
+				}
+				else if(currentSymbol==')' || currentSymbol=='}' || currentSymbol==']'){
+					currentSymbol = ')';
+					bracketCount--;
+				}
+			}
+
 			Symbol *operator;
 
 			operator = createSymbol(currentSymbol);
@@ -137,6 +149,10 @@ Symbol *tokenize(char *expression, size_t size){
 			exit(2);
 		}
 		count++;
+	}
+	if(bracketCount!=0){
+		printf("\nError : The given expression is not balanced in terms of paranthesis!\n");
+		exit(3);
 	}
 	if(buffer!=NULL){
 #ifdef SHOW_STEPS
