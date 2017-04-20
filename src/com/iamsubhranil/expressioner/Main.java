@@ -82,15 +82,13 @@ public class Main {
 
     private static double resolveValue(String item, BufferedReader reader) {
         try {
-            double value = Double.parseDouble(item);
-            return value;
+            return Double.parseDouble(item);
         } catch (NumberFormatException nfe) {
             System.out.println("Enter the value of " + item + " : ");
             if (reader == null)
                 reader = new BufferedReader(new InputStreamReader(System.in));
             try {
-                double value = Double.parseDouble(reader.readLine());
-                return value;
+                return Double.parseDouble(reader.readLine());
             } catch (NumberFormatException nfe2) {
                 System.err.println("Oops! Please insert a numeric value!");
                 return resolveValue(item, reader);
