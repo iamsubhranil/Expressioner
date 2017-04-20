@@ -75,8 +75,11 @@ Symbol *tokenize(char *expression, size_t size){
 					bracketCount--;
 				}
 			}
+			else if(isOperator(currentSymbol) && prev==NULL){
+				printf("\nError : Expression cannot start with an operator!\n");
+				exit(6);
+			}
 			
-
 			Symbol *operator;
 
 			operator = createSymbol(currentSymbol);
@@ -112,14 +115,7 @@ Symbol *tokenize(char *expression, size_t size){
 				else
 					prev->next = operator;
 			}
-			if(isOperator(currentSymbol)){
-				char nextSymbol = *(expression+count+1);
-				char prevSymbol = *(prev->value);
-				if((!isalnum(prevSymbol) && prevSymbol!=')') || (nextSymbol!='(' && !isalnum(nextSymbol))){
-					printf("\nError : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s']\n", currentSymbol, prevSymbol, nextSymbol=='\n'?"(newline)":&nextSymbol);
-					exit(4);
-				}
-			}
+			
 			prev = operator;
 		}
 		else if(currentSymbol==' '){
@@ -178,6 +174,40 @@ Symbol *tokenize(char *expression, size_t size){
 		else
 			prev->next = symbol;
 	}
+	
+	prev = head;
+	Symbol *temp = prev->next;
+	while(temp!=NULL){
+		Symbol *current = temp;
+		char cur = *(current->value);
+		char pre = *(prev->value);
+		if(isalnum(cur) && pre==')'){
+			Symbol *mul = createSymbol('*');
+			mul->next = prev->next;
+			prev->next = mul;
+		}
+		else if(isalnum(cur) && isalnum(pre)){
+			printf("\nError : No operator specified between operands %s and %s\n", prev->value, current->value);
+			exit(5);
+		}
+		else if(isOperator(cur)){
+			char nextSymbol;
+			if(current->next==NULL){
+				nextSymbol = '\n';
+			}
+			else
+				nextSymbol = *(current->next->value);
+
+			if((!isalnum(pre) && pre!=')') || (nextSymbol!='(' && !isalnum(nextSymbol))){
+				printf("\nError : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s']\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
+				exit(4);
+			}
+		}
+		prev = temp;
+		temp = temp->next;
+	}
+
+
 	return head;
 }
 
