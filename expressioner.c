@@ -64,7 +64,9 @@ Symbol *tokenize(char *expression, size_t size){
 #ifdef SHOW_STEPS
 			printf("\nBrace or operator found : %c", currentSymbol);	
 #endif
-			Symbol *operator = createSymbol(currentSymbol);
+			Symbol *operator;
+
+			operator = createSymbol(currentSymbol);
 			operator->next = NULL;
 
 			if(buffer!=NULL){
@@ -77,7 +79,12 @@ Symbol *tokenize(char *expression, size_t size){
 #endif
 				Symbol *symbol = (Symbol *)malloc(sizeof(Symbol));
 				symbol->value = buffer;
-				symbol->next = operator;
+				if(currentSymbol!='(')
+					symbol->next = operator;
+				else{
+					symbol->next = createSymbol('*');
+					symbol->next->next = operator;
+				}
 				if(!head)
 					head = symbol;
 				else
@@ -192,14 +199,9 @@ Symbol * convertToPostFix(Symbol *head){
 		temp = temp->next;
 	}
 	temp->next = createSymbol(')');
-	temp = NULL;
+	temp = head;
 
 	while(stack->count!=0){
-		if(temp==NULL)
-			temp = head;
-		else
-			temp = temp->next;
-
 		char *item = temp->value;
 #ifdef SHOW_STEPS		
 		printf("\nItem : %s ", item);
@@ -272,6 +274,7 @@ Symbol * convertToPostFix(Symbol *head){
 		display(stack->top);
 		printf("\n");
 #endif
+		temp = temp->next;
 	}
 	prevOutput->next = NULL;
 	return output;
