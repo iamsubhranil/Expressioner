@@ -49,6 +49,8 @@ char * addtoBuffer(char *buffer, size_t *bufferSize, char add){
 	return buffer;
 }
 
+//#define SHOW_STEPS
+
 Symbol *tokenize(char *expression, size_t size){
 	Symbol *head = NULL;
 	Symbol *prev = NULL;
@@ -56,6 +58,9 @@ Symbol *tokenize(char *expression, size_t size){
 	char *buffer = NULL;
 	size_t bufferSize = 0;
 	size_t bracketCount = 0;
+
+	printf("\nTokenizing given expression..\n");
+
 	while(count<size-1){
 		char currentSymbol = *(expression+count);
 #ifdef SHOW_STEPS
@@ -74,10 +79,6 @@ Symbol *tokenize(char *expression, size_t size){
 					currentSymbol = ')';
 					bracketCount--;
 				}
-			}
-			else if(isOperator(currentSymbol) && prev==NULL){
-				printf("\nError : Expression cannot start with an operator!\n");
-				exit(6);
 			}
 			
 			Symbol *operator;
@@ -175,7 +176,13 @@ Symbol *tokenize(char *expression, size_t size){
 			prev->next = symbol;
 	}
 	
+	printf("\nPerforming semantic analysis..\n");
+
 	prev = head;
+	if(isOperator(*prev->value)){
+		printf("\nError : An expression cannot start with an operator!\n");
+		exit(6);
+	}
 	Symbol *temp = prev->next;
 	while(temp!=NULL){
 		Symbol *current = temp;
