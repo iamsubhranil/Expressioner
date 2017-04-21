@@ -193,7 +193,7 @@ void checkSemantics(Symbol *head){
 #endif
 		}
 		else if(isalnum(cur) && isalnum(pre)){
-			printf("\n Error : No operator specified between operands %s and %s\n", prev->value, current->value);
+			printf("\n Error : No operator specified between operands %s and %s !\n", prev->value, current->value);
 			exit(5);
 		}
 		else if(isOperator(cur)){
@@ -208,7 +208,7 @@ void checkSemantics(Symbol *head){
 				nextSymbol = '(';
 
 			if((!isalnum(pre) && pre!=')') || (nextSymbol!='(' && !isalnum(nextSymbol))){
-				printf("\n Error : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s']\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
+				printf("\n Error : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s'] !\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
 				exit(4);
 			}
 		}
