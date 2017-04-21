@@ -57,7 +57,6 @@ Symbol *tokenize(char *expression, size_t size){
 	size_t count = 0;
 	char *buffer = NULL;
 	size_t bufferSize = 0;
-	size_t bracketCount = 0;
 
 	printf("\nTokenizing given expression..\n");
 
@@ -69,18 +68,7 @@ Symbol *tokenize(char *expression, size_t size){
 		if(isBrace(currentSymbol) || isOperator(currentSymbol)){
 #ifdef SHOW_STEPS
 			printf("\nBrace or operator found : %c", currentSymbol);	
-#endif
-			if(isBrace(currentSymbol)){
-				if(currentSymbol=='(' || currentSymbol=='{' || currentSymbol=='['){
-					currentSymbol = '(';
-					bracketCount++;
-				}
-				else if(currentSymbol==')' || currentSymbol=='}' || currentSymbol==']'){
-					currentSymbol = ')';
-					bracketCount--;
-				}
-			}
-			
+#endif			
 			Symbol *operator;
 
 			operator = createSymbol(currentSymbol);
@@ -96,17 +84,13 @@ Symbol *tokenize(char *expression, size_t size){
 #endif
 				Symbol *symbol = (Symbol *)malloc(sizeof(Symbol));
 				symbol->value = buffer;
-				if(currentSymbol!='(')
-					symbol->next = operator;
-				else{
-					symbol->next = createSymbol('*');
-					symbol->next->next = operator;
-				}
+				symbol->next = operator;
+				
 				if(!head)
 					head = symbol;
 				else
 					prev->next = symbol;
-				prev = symbol;
+
 				buffer = NULL;
 				bufferSize = 0;
 			}
@@ -155,10 +139,7 @@ Symbol *tokenize(char *expression, size_t size){
 		}
 		count++;
 	}
-	if(bracketCount!=0){
-		printf("\nError : The given expression is not balanced in terms of paranthesis!\n");
-		exit(3);
-	}
+	
 	if(buffer!=NULL){
 #ifdef SHOW_STEPS
 		printf("\n\tPrevious buffer exists!");
@@ -175,13 +156,28 @@ Symbol *tokenize(char *expression, size_t size){
 		else
 			prev->next = symbol;
 	}
-	
+		
+	return head;
+}
+
+void checkSemantics(Symbol *head){
 	printf("\nPerforming semantic analysis..\n");
 
-	prev = head;
+	Symbol *prev = head;
+	size_t bracketCount = 0;
 	if(isOperator(*prev->value)){
 		printf("\nError : An expression cannot start with an operator!\n");
 		exit(6);
+	}
+	else if(isBrace(*prev->value)){
+		if(*prev->value=='{' || *prev->value=='[' || *prev->value=='('){
+			*prev->value = '(';
+			bracketCount++;
+		}
+		else{
+			printf("\nError : An expression cannot start with a closing brace!\n");
+			exit(8);
+		}
 	}
 	Symbol *temp = prev->next;
 	while(temp!=NULL){
@@ -192,6 +188,9 @@ Symbol *tokenize(char *expression, size_t size){
 			Symbol *mul = createSymbol('*');
 			mul->next = prev->next;
 			prev->next = mul;
+#ifdef SHOW_STEPS
+			printf("\n Alphanumeric operator : Inserted '*' between %s and %s \n", prev->value, current->value);
+#endif
 		}
 		else if(isalnum(cur) && isalnum(pre)){
 			printf("\nError : No operator specified between operands %s and %s\n", prev->value, current->value);
@@ -205,17 +204,45 @@ Symbol *tokenize(char *expression, size_t size){
 			else
 				nextSymbol = *(current->next->value);
 
+			if(nextSymbol=='{' || nextSymbol=='[')
+				nextSymbol = '(';
+
 			if((!isalnum(pre) && pre!=')') || (nextSymbol!='(' && !isalnum(nextSymbol))){
 				printf("\nError : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s']\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
 				exit(4);
 			}
 		}
+		else if(isBrace(cur)){
+#ifdef SHOW_STEPS
+			printf("\n Brace found : %c \n", cur);
+#endif		
+			if(cur=='(' || cur=='{' || cur=='['){
+				current->value = "(";
+				cur = '(';
+				bracketCount++;
+			}
+			else if(cur==')' || cur=='}' || cur==']'){
+				current->value = ")";
+				cur = ')';
+				bracketCount--;
+			}
+
+			if(cur=='(' && !isOperator(pre)){
+				Symbol *mul = createSymbol('*');
+				mul->next = prev->next;
+				prev->next = mul;
+#ifdef SHOW_STEPS
+			printf("\n Brace operator : Inserted '*' between %s and %s \n", prev->value, current->value);
+#endif		
+			}
+		}
 		prev = temp;
 		temp = temp->next;
 	}
-
-
-	return head;
+	if(bracketCount!=0){
+		printf("\nError : The given expression is not balanced in terms of parantheses!\nUnmatched parantheses : %lu\n", bracketCount);
+		exit(6);
+	}
 }
 
 void display(Symbol *head){
@@ -353,6 +380,10 @@ int main()
     }
     Symbol *head = tokenize(line, size);
     printf("\n Tokenized expression : ");
+    display(head);
+    printf("\n");
+    checkSemantics(head);
+    printf("\n Corrected expression : ");
     display(head);
     printf("\n");
     Symbol *output = convertToPostFix(head);
