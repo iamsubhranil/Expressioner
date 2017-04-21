@@ -58,16 +58,16 @@ Symbol *tokenize(char *expression, size_t size){
 	char *buffer = NULL;
 	size_t bufferSize = 0;
 
-	printf("\nTokenizing given expression..\n");
+	printf("\n Tokenizing given expression..\n");
 
 	while(count<size-1){
 		char currentSymbol = *(expression+count);
 #ifdef SHOW_STEPS
-		printf("\nCurrent symbol : %c", currentSymbol);
+		printf("\n Current symbol : %c", currentSymbol);
 #endif
 		if(isBrace(currentSymbol) || isOperator(currentSymbol)){
 #ifdef SHOW_STEPS
-			printf("\nBrace or operator found : %c", currentSymbol);	
+			printf("\n Brace or operator found : %c", currentSymbol);	
 #endif			
 			Symbol *operator;
 
@@ -105,7 +105,7 @@ Symbol *tokenize(char *expression, size_t size){
 		}
 		else if(currentSymbol==' '){
 #ifdef SHOW_STEPS
-			printf("\nSpace found..");
+			printf("\n Space found..");
 #endif
 			if(buffer!=NULL){
 #ifdef SHOW_STEPS
@@ -129,7 +129,7 @@ Symbol *tokenize(char *expression, size_t size){
 		}
 		else if(isalnum(currentSymbol)){
 #ifdef SHOW_STEPS
-			printf("\nAdded to current buffer : %c", currentSymbol);
+			printf("\n Added to current buffer : %c", currentSymbol);
 #endif
 			buffer = addtoBuffer(buffer, &bufferSize, currentSymbol);
 		}
@@ -161,12 +161,12 @@ Symbol *tokenize(char *expression, size_t size){
 }
 
 void checkSemantics(Symbol *head){
-	printf("\nPerforming semantic analysis..\n");
+	printf("\n Performing semantic analysis..\n");
 
 	Symbol *prev = head;
 	size_t bracketCount = 0;
 	if(isOperator(*prev->value)){
-		printf("\nError : An expression cannot start with an operator!\n");
+		printf("\n Error : An expression cannot start with an operator!\n");
 		exit(6);
 	}
 	else if(isBrace(*prev->value)){
@@ -175,7 +175,7 @@ void checkSemantics(Symbol *head){
 			bracketCount++;
 		}
 		else{
-			printf("\nError : An expression cannot start with a closing brace!\n");
+			printf("\n Error : An expression cannot start with a closing brace!\n");
 			exit(8);
 		}
 	}
@@ -193,7 +193,7 @@ void checkSemantics(Symbol *head){
 #endif
 		}
 		else if(isalnum(cur) && isalnum(pre)){
-			printf("\nError : No operator specified between operands %s and %s\n", prev->value, current->value);
+			printf("\n Error : No operator specified between operands %s and %s\n", prev->value, current->value);
 			exit(5);
 		}
 		else if(isOperator(cur)){
@@ -208,7 +208,7 @@ void checkSemantics(Symbol *head){
 				nextSymbol = '(';
 
 			if((!isalnum(pre) && pre!=')') || (nextSymbol!='(' && !isalnum(nextSymbol))){
-				printf("\nError : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s']\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
+				printf("\n Error : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s']\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
 				exit(4);
 			}
 		}
@@ -240,7 +240,7 @@ void checkSemantics(Symbol *head){
 		temp = temp->next;
 	}
 	if(bracketCount!=0){
-		printf("\nError : The given expression is not balanced in terms of parantheses!\nUnmatched parantheses : %lu\n", bracketCount);
+		printf("\n Error : The given expression is not balanced in terms of parantheses!\n");
 		exit(6);
 	}
 }
@@ -292,7 +292,7 @@ Symbol * convertToPostFix(Symbol *head){
 	while(stack->count!=0){
 		char *item = temp->value;
 #ifdef SHOW_STEPS		
-		printf("\nItem : %s ", item);
+		printf("\n Item : %s ", item);
 #endif
 		if(isOperator(*item) || (*item)=='('){
 			Symbol *sym = pop(stack);
@@ -372,10 +372,10 @@ int main()
 {
     char *line = NULL;
     size_t temp, size, end = -1;
-    printf("Enter the expression : ");
+    printf(" Enter the expression : ");
     size = getline(&line, &temp, stdin);
     if(size==end){
-    	printf("Enter an expression to continue!");
+    	printf(" Enter an expression to continue!");
 	return 1;
     }
     Symbol *head = tokenize(line, size);
