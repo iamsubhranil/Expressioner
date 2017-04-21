@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<ctype.h>
+#include<string.h>
 
 typedef struct Symbol {
 	char *value;
@@ -127,7 +128,7 @@ Symbol *tokenize(char *expression, size_t size){
 			buffer = NULL;
 			bufferSize = 0;
 		}
-		else if(isalnum(currentSymbol)){
+		else if(isalnum(currentSymbol) || currentSymbol=='.' || currentSymbol=='_'){
 #ifdef SHOW_STEPS
 			printf("\n Added to current buffer : %c", currentSymbol);
 #endif
@@ -163,40 +164,62 @@ Symbol *tokenize(char *expression, size_t size){
 void checkSemantics(Symbol *head){
 	printf("\n Performing semantic analysis..\n");
 
-	Symbol *prev = head;
+	Symbol *prev = NULL;
 	size_t bracketCount = 0;
-	if(isOperator(*prev->value)){
-		printf("\n Error : An expression cannot start with an operator!\n");
-		exit(6);
-	}
-	else if(isBrace(*prev->value)){
-		if(*prev->value=='{' || *prev->value=='[' || *prev->value=='('){
-			*prev->value = '(';
-			bracketCount++;
-		}
-		else{
-			printf("\n Error : An expression cannot start with a closing brace!\n");
-			exit(8);
-		}
-	}
-	Symbol *temp = prev->next;
+	Symbol *temp = head;
 	while(temp!=NULL){
 		Symbol *current = temp;
 		char cur = *(current->value);
-		char pre = *(prev->value);
-		if(isalnum(cur) && pre==')'){
-			Symbol *mul = createSymbol('*');
-			mul->next = prev->next;
-			prev->next = mul;
+		
+		if(isalnum(cur) || cur=='.' || cur=='_'){
+			if(isalpha(cur) || cur=='_'){
+				if(strchr(current->value, '.')!=NULL){
+					printf("\n Error : Variable name '%s' contains '.' ! \n", current->value);
+					exit(9);
+				}
 #ifdef SHOW_STEPS
-			printf("\n Alphanumeric operator : Inserted '*' between %s and %s \n", prev->value, current->value);
+				else
+					printf("\n Found variable : %s \n",current->value);
 #endif
-		}
-		else if(isalnum(cur) && isalnum(pre)){
-			printf("\n Error : No operator specified between operands %s and %s !\n", prev->value, current->value);
-			exit(5);
+			}
+			else{
+				char *err;
+				double d = strtod(current->value, &err);
+				if(strlen(err)!=0){
+					printf("\n Error : Variable name '%s' precedes with a number! \n", current->value);
+					exit(10);
+				}
+#ifdef SHOW_STEPS
+				else
+					printf("\n Found constant value : %s \n", current->value);
+#endif
+			}
+			if(temp==head){
+				prev = temp;
+				temp = temp->next;
+				continue;
+			}
+			char pre = *(prev->value);
+			if(pre==')'){
+				Symbol *mul = createSymbol('*');
+				mul->next = prev->next;
+				prev->next = mul;
+#ifdef SHOW_STEPS
+				printf("\n Alphanumeric operator : Inserted '*' between %s and %s \n", prev->value, current->value);
+#endif
+			}
+			else if(isalnum(pre)){
+				printf("\n Error : No operator specified between operands %s and %s !\n", prev->value, current->value);
+				exit(5);
+			}
+			
 		}
 		else if(isOperator(cur)){
+			if(temp==head){
+				printf("\n Error : An expression cannot start with an operator!\n");
+				exit(6);
+			}
+			char pre = *(prev->value);
 			char nextSymbol;
 			if(current->next==NULL){
 				nextSymbol = '\n';
@@ -207,7 +230,7 @@ void checkSemantics(Symbol *head){
 			if(nextSymbol=='{' || nextSymbol=='[')
 				nextSymbol = '(';
 
-			if((!isalnum(pre) && pre!=')') || (nextSymbol!='(' && !isalnum(nextSymbol))){
+			if((!isalnum(pre) && pre!=')' && pre!='.' && pre!='_') || (nextSymbol!='(' && nextSymbol!='.' && nextSymbol!='_' && !isalnum(nextSymbol))){
 				printf("\n Error : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s'] !\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
 				exit(4);
 			}
@@ -222,12 +245,16 @@ void checkSemantics(Symbol *head){
 				bracketCount++;
 			}
 			else if(cur==')' || cur=='}' || cur==']'){
+				if(temp==head){
+					printf("\n Error : An expression cannot start with a closing brace!\n");
+					exit(8);
+				}
 				current->value = ")";
 				cur = ')';
 				bracketCount--;
 			}
 
-			if(cur=='(' && !isOperator(pre)){
+			if(prev!=NULL && cur=='(' && !isOperator(*prev->value)){
 				Symbol *mul = createSymbol('*');
 				mul->next = prev->next;
 				prev->next = mul;
