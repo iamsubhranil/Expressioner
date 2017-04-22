@@ -355,9 +355,11 @@ void checkSemantics(Symbol *head){
 				bracketCount--; // Decrease the bracketCount to denote the closing
 			}
 
-			if(prev!=NULL && cur=='(' && !isOperator(*prev->value)){ // There is a previous symbol which is an
-										 // operand and the present is an openning brace,
-										 // so insert '*' operator between them implicitly
+			if(prev!=NULL && cur=='(' && *prev->value!='(' && !isOperator(*prev->value)){ 
+				// There is a previous symbol which is an operand or closing brace 
+				// and the present is an openning brace, so insert '*' operator 
+				// between them implicitly
+				
 				Symbol *mul = createSymbol('*'); // Create the operator
 				mul->next = prev->next; // Insert the present brace next to it
 				prev->next = mul; // Insert the operator before the present brace
