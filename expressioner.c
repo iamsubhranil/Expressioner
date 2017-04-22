@@ -231,7 +231,7 @@ void checkSemantics(Symbol *head){
 				nextSymbol = '(';
 
 			if((!isalnum(pre) && pre!=')' && pre!='.' && pre!='_') || (nextSymbol!='(' && nextSymbol!='.' && nextSymbol!='_' && !isalnum(nextSymbol))){
-				printf("\n Error : Unbalanced operator '%c' [previous symbol '%c', next symbol '%s'] !\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
+				printf("\n Error : Unbalanced operator '%c' [previous symbol '%s', next symbol '%s'] !\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
 				exit(4);
 			}
 		}
