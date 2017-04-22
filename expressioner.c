@@ -332,7 +332,7 @@ void checkSemantics(Symbol *head){
 			 * or a '.'(i.e.: .7), or a '_'(i.e.: _value1).
 			 */
 			if((!isalnum(pre) && pre!=')' && pre!='.' && pre!='_') || (nextSymbol!='(' && nextSymbol!='.' && nextSymbol!='_' && !isalnum(nextSymbol))){ // All of the above conditions are false, the operator is unbalanced
-				printf("\n Error : Unbalanced operator '%c' [previous symbol '%s', next symbol '%s'] !\n", cur, pre, nextSymbol=='\n'?"(newline)":&nextSymbol);
+				printf("\n Error : Unbalanced operator '%c' [previous symbol '%s', next symbol '%s'] !\n", cur, prev->value, nextSymbol=='\n'?"(newline)":current->next->value);
 				exit(4);
 			}
 		}
