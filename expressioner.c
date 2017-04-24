@@ -1,7 +1,7 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<ctype.h>
-#include<string.h>
+#include<stdio.h> // printf() scanf()
+#include<stdlib.h>  // malloc()
+#include<ctype.h> // isalnum()
+#include<string.h> // strlen(), strtod()
 
 /*
  * The linked list containing the symbols of the given expression.
