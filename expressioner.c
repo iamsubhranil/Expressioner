@@ -23,15 +23,80 @@ typedef struct Stack {
 } Stack;
 
 /*
+ * A one-liner to create a new Symbol *
+ */
+Symbol * newSymbol(){
+	Symbol *symbol = (Symbol *)malloc(sizeof(Symbol)); // Allocate memory for a symbol
+	symbol->value = NULL; // Clear the value
+	symbol->next = NULL; // Clear the link
+	return symbol;
+}
+/*
  * This method does the conversion of char->Symbol * when needed,
  * typically while storing an operator or a brace.
  */
-Symbol * createSymbol(char c){
-	Symbol *symbol = (Symbol *)malloc(sizeof(Symbol)); //Allocate memory for the pointer
+Symbol * createCharacterSymbol(char c){
+	Symbol *symbol = newSymbol(); //Allocate memory for the pointer
 	symbol->value = (char *)malloc(sizeof(char)); //Allocate memory for the char
 	(*symbol->value) = c; //Copy the character to value
-	symbol->next = NULL; //Set the next node to NULL, just in case
 	return symbol;
+}
+
+/*
+ * This method does the conversion of char *->Symbol * when needed,
+ * typically while handling a string
+ */
+Symbol * createStringSymbol(char *s){
+	Symbol *symbol = newSymbol();
+	symbol->value = s;
+	return symbol;
+}
+
+/*
+ * Adds the given character to the buffer. Since it modifies
+ * the buffer itself, it returns the pointer in any case.
+ * However, the pointer may not be reassigned to a new address
+ * after calling realloc(). Also, there is no typical NULL
+ * check after realloc, because it will practically never happen.
+ * 
+ * Arguments => buffer : The buffer to extend
+ * 		bufferSize : A pointer to the present size of the buffer
+ * 		add : The character to add
+ * Returns   => The newly relocated buffer
+ */
+char * addToBuffer(char *buffer, size_t *bufferSize, char add){
+	buffer = (char *)realloc(buffer, ++(*bufferSize)); //Call realloc to extend the buffer to bufferSize+1
+	(*(buffer+(*bufferSize)-1)) = add; //Add the character to the newly available position
+	return buffer;
+}
+
+/*
+ * This method does all the hardwork needed to add
+ * a symbol to a given list with head, and updates the
+ * backup prev pointer. This method also returns the newly
+ * created symbol.
+ */
+Symbol * addBufferToList(char *buffer, size_t *bufferSize, Symbol **head, Symbol **prev){
+	buffer = addToBuffer(buffer, bufferSize, '\0'); // Terminate the string
+	Symbol *symbol = createStringSymbol(buffer); // Create a new symbol with the string
+	if(*prev==NULL){ // This is the first node
+		*head = symbol;
+	}
+	else{
+		(*prev)->next = symbol; // Link to the previous node
+	}
+	*prev = symbol; // The added string is the last symbol of the list
+	return symbol;
+}
+
+/*
+ * One-liner to create a new stack
+ */
+Stack * newStack(){
+	Stack *stack = (Stack *)malloc(sizeof(Stack)); // Allocate memory
+	stack->count = 0; // Reset count
+	stack->top = NULL; // Reset link
+	return stack;
 }
 
 /*
@@ -43,7 +108,7 @@ Symbol * createSymbol(char c){
  * in the stack.
  */
 void push(Stack *stack, Symbol *symbol){
-	Symbol * insert = createSymbol(' '); //Create a new symbol with a dummy value
+	Symbol * insert = newSymbol(); //Create a new symbol with a dummy value
 	insert->value = symbol->value; //Copy the given value to the new symbol
 	insert->next = stack->top; //Adjust pointers
 	stack->top = insert; //Insert the symbol at the top of the stack
@@ -85,24 +150,6 @@ int isBrace(char c){
 	return c==']' || c=='[' || c=='}' || c=='{' || c==')' || c=='(';
 }
 
-/*
- * Adds the given character to the buffer. Since it modifies
- * the buffer itself, it returns the pointer in any case.
- * However, the pointer may not be reassigned to a new address
- * after calling realloc(). Also, there is no typical NULL
- * check after realloc, because it will practically never happen.
- * 
- * Arguments => buffer : The buffer to extend
- * 		bufferSize : A pointer to the present size of the buffer
- * 		add : The character to add
- * Returns   => The newly relocated buffer
- */
-char * addtoBuffer(char *buffer, size_t *bufferSize, char add){
-	buffer = (char *)realloc(buffer, ++(*bufferSize)); //Call realloc to extend the buffer to bufferSize+1
-	(*(buffer+(*bufferSize)-1)) = add; //Add the character to the newly available position
-	return buffer;
-}
-
 //#define SHOW_STEPS //The debug switch
 
 /*
@@ -142,7 +189,7 @@ Symbol *tokenize(char *expression, size_t size){
 #endif			
 			Symbol *operator;
 
-			operator = createSymbol(currentSymbol); // Create a symbol with the current operator
+			operator = createCharacterSymbol(currentSymbol); // Create a symbol with the current operator
 			operator->next = NULL; // Reset the next pointer
 
 			if(buffer!=NULL){ // The buffer contains a set of characters, so it needs to be added before the
@@ -150,19 +197,11 @@ Symbol *tokenize(char *expression, size_t size){
 #ifdef SHOW_STEPS
 				printf("\n\tPrevious buffer exists!");
 #endif
-				buffer = addtoBuffer(buffer, &bufferSize, '\0'); // Terminate the string
+				Symbol *symbol = addBufferToList(buffer, &bufferSize, &head, &prev);
 #ifdef SHOW_STEPS
-				printf("\n\tValue of buffer : %s", buffer);
+				printf("\n\tValue of buffer : %s", symbol->value);
 #endif
-				Symbol *symbol = (Symbol *)malloc(sizeof(Symbol)); // Create a new symbol
-				symbol->value = buffer; // Copy the buffer to the pointer
 				symbol->next = operator; // Make the brace or operator next member of the resulting expression
-				
-				if(!head) // Check if head is not yet set
-					head = symbol; // Set the head
-				else
-					prev->next = symbol; // Link to the previous node of the list
-
 				buffer = NULL; // Reset the buffer
 				bufferSize = 0; // Reset the size
 			}
@@ -183,18 +222,10 @@ Symbol *tokenize(char *expression, size_t size){
 #ifdef SHOW_STEPS
 				printf("\n\tPrevious buffer exists!");
 #endif
-				buffer = addtoBuffer(buffer, &bufferSize, '\0'); // Terminate the string
+				Symbol * sy = addBufferToList(buffer, &bufferSize, &head, &prev); // Terminate the string
 #ifdef SHOW_STEPS
-				printf("\n\tValue of buffer : %s", buffer);
+				printf("\n\tValue of buffer : %s", sy->value);
 #endif
-				Symbol *symbol = (Symbol *)malloc(sizeof(Symbol)); // Create a new symbol
-				symbol->value = buffer; // Copy the buffer
-				symbol->next = NULL; // Reset the next pointer
-				if(!head) // Check and adjust head
-					head = symbol;
-				else
-					prev->next = symbol; // Link to the previous symbol in the list
-				prev = symbol; // This is going to be the last element of the list
 			}
 			buffer = NULL; // Reset buffer
 			bufferSize = 0; // Reset size
@@ -205,7 +236,7 @@ Symbol *tokenize(char *expression, size_t size){
 #ifdef SHOW_STEPS
 			printf("\n Added to current buffer : %c", currentSymbol);
 #endif
-			buffer = addtoBuffer(buffer, &bufferSize, currentSymbol); // Add the symbol in hand to the buffer
+			buffer = addToBuffer(buffer, &bufferSize, currentSymbol); // Add the symbol in hand to the buffer
 		}
 		else{ // The character in hand should not be in the expression
 			printf("\nError : Unknown operator or symbol '%c' !\n", currentSymbol);
@@ -218,17 +249,10 @@ Symbol *tokenize(char *expression, size_t size){
 #ifdef SHOW_STEPS
 		printf("\n\tPrevious buffer exists!");
 #endif
-		buffer = addtoBuffer(buffer, &bufferSize, '\0'); // Terminate the string
+		Symbol * buf = addBufferToList(buffer, &bufferSize, &head, &prev); // Terminate the string
 #ifdef SHOW_STEPS
 		printf("\n\tValue of buffer : %s", buffer);
 #endif
-		Symbol *symbol = (Symbol *)malloc(sizeof(Symbol)); // Create a new symbol
-		symbol->value = buffer; // Copy buffer to it
-		symbol->next = NULL; // Reset the next
-		if(!head) // Check and adjust head
-			head = symbol;
-		else
-			prev->next = symbol; // Link to the previous symbol in the resulting expression
 	}
 		
 	return head; // Return the head of the resulting tokenized expression
@@ -291,7 +315,7 @@ void checkSemantics(Symbol *head){
 			char pre = *(prev->value); // Extract the previous character
 			if(pre==')'){ // The previous character is a closing brace, so there must be a multiplier operator
 				      // between previous and current symbol
-				Symbol *mul = createSymbol('*'); // Create the multiplier symbol
+				Symbol *mul = createCharacterSymbol('*'); // Create the multiplier symbol
 				mul->next = prev->next; // Insert present symbol to the next node of the multiplier
 				prev->next = mul; // Insert the operator symbol before the current symbol
 #ifdef SHOW_STEPS
@@ -360,7 +384,7 @@ void checkSemantics(Symbol *head){
 				// and the present is an openning brace, so insert '*' operator 
 				// between them implicitly
 				
-				Symbol *mul = createSymbol('*'); // Create the operator
+				Symbol *mul = createCharacterSymbol('*'); // Create the operator
 				mul->next = prev->next; // Insert the present brace next to it
 				prev->next = mul; // Insert the operator before the present brace
 #ifdef SHOW_STEPS
@@ -428,20 +452,18 @@ int priority(char c){
  * Returns   => A pointer to the head of the resulting postfix expression
  */
 Symbol * convertToPostFix(Symbol *head){
-	Stack *stack = (Stack *)malloc(sizeof(Stack));
-	stack->top = NULL;
-	stack->count = 0;
+	Stack *stack = newStack();
 
 	Symbol * output = NULL;
 	Symbol * prevOutput = NULL;
 
-	push(stack, createSymbol('('));
+	push(stack, createCharacterSymbol('('));
 
 	Symbol *temp = head;
 	while(temp->next!=NULL){
 		temp = temp->next;
 	}
-	temp->next = createSymbol(')');
+	temp->next = createCharacterSymbol(')');
 	temp = head;
 
 	while(stack->count!=0){
@@ -522,7 +544,6 @@ Symbol * convertToPostFix(Symbol *head){
 	prevOutput->next = NULL;
 	return output;
 }
-
 
 /*
  * The driver of the program
