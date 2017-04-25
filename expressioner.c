@@ -688,12 +688,21 @@ void evaluatePostfix(Symbol *start){
 				case '%' : res = (int)x % (int)y;
 					   break;
 			}
-			int s = (int)((ceil(log10(res))+1)*sizeof(char)); // Find the number of digits in 'res'
+#ifdef SHOW_STEPS
+			printf("\n\t Result : %g \n", res);
+#endif
+			int extra = 1 + (res<0);
+			int s = (int)((ceil(log10(fabs(res)))+extra)*sizeof(char)); // Find the number of digits in 'res'
+			if(res==0)
+				s = 1;
 			char *r = (char *)malloc(s); // Allocate memory for 'res'
 #ifdef SHOW_STEPS
 			printf("\n Malloced %d bytes \n",s);
 #endif
 			sprintf(r, "%g", res); // Convert 'res' to string
+#ifdef SHOW_STEPS
+			printf("\n\t Pushing result back to the stack \n");
+#endif
 			push(stack, createStringSymbol(r)); // Push 'res' back in the stack
 		}
 		temp = temp->next; // Switch to the next symbol
