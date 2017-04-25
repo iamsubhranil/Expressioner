@@ -1,9 +1,8 @@
-#include<stdio.h> // printf() scanf()
+#include<stdio.h> // printf(), scanf()
 #include<stdlib.h>  // malloc()
-#include<ctype.h> // isalnum()
+#include<ctype.h> // isalnum(), isaplha()
 #include<string.h> // strlen(), strtod()
-#include<math.h>
-#include<float.h>
+#include<math.h> // pow(), fabs(), log10(), ceil(), isnan(), isinf()
 
 /*
  * The linked list containing the symbols of the given expression.
