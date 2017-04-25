@@ -694,7 +694,7 @@ void evaluatePostfix(Symbol *start){
 #endif
 			int extra = 1 + (res<0); // Add an extra byte if for negative sign
 			int s;	// Size of the resulting string
-			if(isnan(res) || isinf(res)) // 'nan' is going to bre stored in the string
+			if(isnan(res) || isinf(res)) // 'nan' or 'inf' is going to bre stored in the string
 				s = sizeof(char)*4;
 			else if(res==0)
 				s = 2; // '0'
@@ -713,10 +713,17 @@ void evaluatePostfix(Symbol *start){
 		}
 		temp = temp->next; // Switch to the next symbol
 	}
+
 	char *err; // Error pointer, it should not be needed here
-	double res = strtod(pop(stack)->value, &err); // Pop the remaining item from stack
-							// and parse it to double, it is our
-							// final result
+	double res; // Result variable
+	char *val = pop(stack)->value; // Pop the remaining item from the stack
+
+	if(isalpha(*val) || *val=='_') // It is a variable, most probably the expression
+					// contained only one variable
+		res = getValue(values, val); // Acquire its value
+	else	// It is a constant
+		res = strtod(val, &err); // Parse the string to double
+	
 	printf("\n Final result : %g\n", res);
 }
 
