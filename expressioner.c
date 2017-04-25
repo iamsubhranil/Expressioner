@@ -616,6 +616,7 @@ Variable * getValues(Symbol *start){
 				var->name  = strdup(temp->value); // Assign the variable name
 				printf("\n Enter the value of '%s' : ", temp->value); // Ask for the value
 				scanf("%lf", &var->value); // Load the value in the variable
+				var->next = NULL;
 	
 				if(head==NULL) // This is the first variable
 					head = var;
