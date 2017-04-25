@@ -692,10 +692,15 @@ void evaluatePostfix(Symbol *start){
 #ifdef SHOW_STEPS
 			printf("\n\t Result : %g \n", res);
 #endif
-			int extra = 1 + (res<0);
-			int s = (int)((ceil(log10(fabs(res)))+extra)*sizeof(char)); // Find the number of digits in 'res'
-			if(res==0)
-				s = 1;
+			int extra = 1 + (res<0); // Add an extra byte if for negative sign
+			int s;	// Size of the resulting string
+			if(isnan(res) || isinf(res)) // 'nan' is going to bre stored in the string
+				s = sizeof(char)*4;
+			else if(res==0)
+				s = 2; // '0'
+			else
+				s = (int)((ceil(log10(fabs(res)))+extra)*sizeof(char)); // Find the number of digits in 'res'
+
 			char *r = (char *)malloc(s); // Allocate memory for 'res'
 #ifdef SHOW_STEPS
 			printf("\n Malloced %d bytes \n",s);
