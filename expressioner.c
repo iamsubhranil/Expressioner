@@ -2,6 +2,8 @@
 #include<stdlib.h>  // malloc()
 #include<ctype.h> // isalnum()
 #include<string.h> // strlen(), strtod()
+#include<math.h>
+#include<float.h>
 
 /*
  * The linked list containing the symbols of the given expression.
@@ -48,7 +50,7 @@ Symbol * createCharacterSymbol(char c){
  */
 Symbol * createStringSymbol(char *s){
 	Symbol *symbol = newSymbol();
-	symbol->value = s;
+	symbol->value = strdup(s);
 	return symbol;
 }
 
@@ -109,7 +111,7 @@ Stack * newStack(){
  */
 void push(Stack *stack, Symbol *symbol){
 	Symbol * insert = newSymbol(); //Create a new symbol with a dummy value
-	insert->value = symbol->value; //Copy the given value to the new symbol
+	insert->value = strdup(symbol->value); //Copy the given value to the new symbol
 	insert->next = stack->top; //Adjust pointers
 	stack->top = insert; //Insert the symbol at the top of the stack
 	stack->count++; //Increment the value of count
@@ -546,6 +548,164 @@ Symbol * convertToPostFix(Symbol *head){
 }
 
 /*
+ * An intermediate structure to map
+ * variable names to their values
+ */
+typedef struct Variable{
+	char *name; // Name of the variable
+	double value; // Value of the variable
+	struct Variable *next; // Link to the next variable
+} Variable;
+
+/*
+ * This is basically a search method for
+ * the link list starting with 'head'. This
+ * method traverses the whole list for the
+ * variable name of 's', if found return the
+ * value member of the variable. If no such
+ * variable found in the list, this method returns
+ * NAN to indicate a failure.
+ */
+double getValue(Variable *head, char *s){
+	Variable *temp = head; // Create a temporary pointer
+#ifdef SHOW_STEPS
+	printf("\n Searching values for %s \n", s);
+#endif
+	while(temp!=NULL){ // Traverse till the last node of the list
+#ifdef SHOW_STEPS
+		printf("\n\t Current variable : %s \n", temp->name);
+#endif
+		if(strcmp(temp->name, s)==0){ // Variable name 's' found
+			return temp->value; // Return the value of the variable
+		}
+		temp = temp->next; // Switch to next variable
+	}
+#ifdef SHOW_STEPS
+	printf("\n\tValue not found! \n");
+#endif
+	return NAN; // Variable 's' not found in the list!
+}
+
+/*
+ * This method basically generates a Variable list
+ * from a Symbol list. In the resulting Variable list,
+ * only the variables with their values are added, 
+ * all the constants and operators are kept as it is in 
+ * the argument Symbol list. This method does not know 
+ * what to do with braces, so it must be called after 
+ * convertTo*Fix().
+ */
+Variable * getValues(Symbol *start){
+	Symbol *temp = start; // Create temp pointers
+	Variable *head = NULL, *prev = NULL; // Pointers to keep track of the new list
+#ifdef SHOW_STEPS
+	printf("\n Getting values for variables \n");
+#endif
+	while(temp!=NULL){ // Traverse till the last node
+		char cur = *temp->value; // Extract the first character of present symbol
+		if(isalpha(cur) || cur=='_'){ // Present symbol is a variable
+#ifdef SHOW_STEPS
+			printf("\n Value for variable %s \n", temp->value);
+#endif
+			if(isnan(getValue(head, temp->value))){ // There is no value for temp yet in the
+								// Variable list
+#ifdef SHOW_STEPS
+				printf("\n\tValue not found in index!\n");
+#endif
+				Variable *var = (Variable *)malloc(sizeof(Variable)); // Allocate memory
+				var->name  = strdup(temp->value); // Assign the variable name
+				printf("\n Enter the value of '%s' : ", temp->value); // Ask for the value
+				scanf("%lf", &var->value); // Load the value in the variable
+	
+				if(head==NULL) // This is the first variable
+					head = var;
+				else // There is another variable
+					prev->next = var;
+				prev = var; // Obviously this is the last variable
+			}	
+#ifdef SHOW_STEPS
+			else
+				printf("\n Value found in index %g \n", getValue(head, temp->value));
+#endif
+		}
+		
+		temp = temp->next; // Switch to next Symbol
+	}
+	return head;
+}
+
+/*
+ * This method evalutes a postfix expression
+ * whose first symbol is passed as the argument.
+ * Internally, this method first populates a Variable
+ * list for each unknown variable, starts evaluation,
+ * in the way retrieves the value of any unknown variables
+ * from the newly created Variable list.
+ */
+void evaluatePostfix(Symbol *start){
+	Stack *stack = newStack(); // Create a new stack as an intermediate data strcuture
+	Symbol *temp = start; // Create a temporary pointer
+	printf("\n Evaluating the expression.. \n");
+	Variable *values = getValues(start); // Populate the variable list
+
+	while(temp!=NULL){ // Traverse to the last node
+		char cur = *temp->value; // Extract the first character of present Symbol
+		if(isalnum(cur) || cur=='_' || cur=='.'){ // The symbol is an operand
+#ifdef SHOW_STEPS
+			printf("\n Pushed to stack %s \n", temp->value);
+#endif
+			push(stack, createStringSymbol(temp->value)); // Push it to the stack
+		}
+		else{ // Current symbol is an operator
+			char *s1 = pop(stack)->value; // Pop second operand
+			char *s2 = pop(stack)->value; // Pop the first operand
+			char *err; // Error pointer
+			double x = strtod(s2, &err); // Try to parse first operand as a constant double
+			if(*err!=0){ // First operand does contain an alphabet, it's a variable
+				x = getValue(values, s2); // Retrieve the value from the Variable list
+			}
+			err = NULL; // Reset the error pointer
+			double y = strtod(s1, &err); // Try to parse the second operand
+			if(*err!=0){ // Second operand is a variable
+				y = getValue(values, s1); // Retrieve the value from the Variable list
+			}
+#ifdef SHOW_STEPS
+			printf("\n %s : %g %s : %g \n", s2, x, s1, y);
+#endif
+			double res; // Temporary result variable
+			switch(cur){ // Evaluate present subexpression as 'res = x cur y'
+				case '+' : res = x + y;
+					   break;
+				case '-' : res = x-y;
+					   break;
+				case '*' : res = x * y;
+					   break;
+				case '/' : res = x / y;
+					   break;
+				case '^' : 
+				case '$' : res = pow(x, y);
+					   break;
+				case '%' : res = (int)x % (int)y;
+					   break;
+			}
+			int s = (int)((ceil(log10(res))+1)*sizeof(char)); // Find the number of digits in 'res'
+			char *r = (char *)malloc(s); // Allocate memory for 'res'
+#ifdef SHOW_STEPS
+			printf("\n Malloced %d bytes \n",s);
+#endif
+			sprintf(r, "%g", res); // Convert 'res' to string
+			push(stack, createStringSymbol(r)); // Push 'res' back in the stack
+		}
+		temp = temp->next; // Switch to the next symbol
+	}
+	char *err; // Error pointer, it should not be needed here
+	double res = strtod(pop(stack)->value, &err); // Pop the remaining item from stack
+							// and parse it to double, it is our
+							// final result
+	printf("\n Final result : %g\n", res);
+}
+
+/*
  * The driver of the program
  */
 int main()
@@ -570,5 +730,6 @@ int main()
     printf("\n Postfix expression : ");
     display(output); // Print the postfix expression
     printf("\n");
+    evaluatePostfix(output);
     return 0;
 }
