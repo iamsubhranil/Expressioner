@@ -38,8 +38,9 @@ Symbol * newSymbol(){
  */
 Symbol * createCharacterSymbol(char c){
 	Symbol *symbol = newSymbol(); //Allocate memory for the pointer
-	symbol->value = (char *)malloc(sizeof(char)); //Allocate memory for the char
-	(*symbol->value) = c; //Copy the character to value
+	symbol->value = (char *)malloc(sizeof(char)*2); //Allocate memory for the char
+	(symbol->value)[0] = c; //Copy the character to value
+	(symbol->value)[1] = '\0'; //Terminate with NULL
 	return symbol;
 }
 
@@ -69,6 +70,28 @@ char * addToBuffer(char *buffer, size_t *bufferSize, char add){
 	buffer = (char *)realloc(buffer, ++(*bufferSize)); //Call realloc to extend the buffer to bufferSize+1
 	(*(buffer+(*bufferSize)-1)) = add; //Add the character to the newly available position
 	return buffer;
+}
+
+/*
+ * Limited getline() implementation for non POSIX(read Windows)
+ * systems. This method reads a line of arbitrary length from stdin, 
+ * stores that in buffer, returning the number of characters read.
+ * 
+ * Arguments => buffer : The buffer to store the line, terminated with
+ * 						EOF or '\n' as applicable
+ * 
+ * Returns => The number of characters read from stdin
+ */
+size_t readline(char **buffer){
+		size_t read_size = 0; // The read counter
+		(*buffer) = (char *)malloc(sizeof(char)); // Allocate atleast one char of memory
+		char c = 1; // Temporary character to store stdin read
+		
+		while(c!=EOF && c!='\n'){ // Continue until the end of line
+				c = getc(stdin); // Read a character from stdin
+				(*buffer) = addToBuffer((*buffer), &read_size, c); // Add it to the buffer
+		}
+		return read_size; // Return the amount of characters read
 }
 
 /*
@@ -731,13 +754,13 @@ void evaluatePostfix(Symbol *start){
  */
 int main()
 {
-    char *line = NULL; // A pointer to contain the user given string
-    size_t temp, size, end = -1; // Variables for various use
+    char *line; // A pointer to contain the user given string
+    size_t size, end = 1; // Variables for various use
     printf(" Enter the expression : ");
-    size = getline(&line, &temp, stdin); // Get the expression
+    size = readline(&line); // Get the expression
     if(size==end){
     	printf(" Enter an expression to continue!");
-	return 1;
+		return 1;
     }
     Symbol *head = tokenize(line, size); // Tokenize the given expression
     printf("\n Tokenized expression : ");
