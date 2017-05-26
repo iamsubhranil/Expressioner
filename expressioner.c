@@ -32,6 +32,35 @@ Symbol * newSymbol(){
 	symbol->next = NULL; // Clear the link
 	return symbol;
 }
+
+/*
+ * Method to release memory acquired by Symbol *s, and
+ * any subsequent neighbour of them.
+ *
+ * Argument => A pointer to the head of the Symbol list
+ * 		to be freed
+ */
+void freeSymbols(Symbol *head){
+	Symbol *temp = head, *backup = NULL; //Pointers for traversal
+	while(temp!=NULL){ //Continue till the end of the list
+		backup = temp; //Backup current pointer
+		temp = temp->next; //Shift the temporary pointer to the next node
+		backup->next = NULL; //Disconnect the link
+		free(backup->value); //Free current node's value
+		free(backup); //Free current node
+	}
+}
+
+/*
+ * Method to release the memory acquired by a stack.
+ *
+ * Argument => The pointer to the stack to be freed
+ */
+void freeStack(Stack *stack){
+	freeSymbols(stack->top); // Free the Symbols inside the stack
+	free(stack); //Free the stack
+}
+
 /*
  * This method does the conversion of char->Symbol * when needed,
  * typically while storing an operator or a brace.
@@ -49,9 +78,9 @@ Symbol * createCharacterSymbol(char c){
  * typically while handling a string
  */
 Symbol * createStringSymbol(char *s){
-	Symbol *symbol = newSymbol();
-	symbol->value = strdup(s);
-	return symbol;
+	Symbol *symbol = newSymbol(); // Create a new Symbol *
+	symbol->value = strdup(s); // Store a copy of the value
+	return symbol; // Return the symbol
 }
 
 /*
@@ -67,7 +96,10 @@ Symbol * createStringSymbol(char *s){
  * Returns   => The newly relocated buffer
  */
 char * addToBuffer(char *buffer, size_t *bufferSize, char add){
+	//char *backup = buffer;
 	buffer = (char *)realloc(buffer, ++(*bufferSize)); //Call realloc to extend the buffer to bufferSize+1
+	//if(backup!=buffer && *bufferSize>1)
+	//	free(backup);
 	(*(buffer+(*bufferSize)-1)) = add; //Add the character to the newly available position
 	return buffer;
 }
@@ -78,8 +110,7 @@ char * addToBuffer(char *buffer, size_t *bufferSize, char add){
  * stores that in buffer, returning the number of characters read.
  * 
  * Arguments => buffer : The buffer to store the line, terminated with
- * 						EOF or '\n' as applicable
- * 
+ * 			EOF or '\n' as applicable
  * Returns => The number of characters read from stdin
  */
 size_t readline(char **buffer){
@@ -103,6 +134,7 @@ size_t readline(char **buffer){
 Symbol * addBufferToList(char *buffer, size_t *bufferSize, Symbol **head, Symbol **prev){
 	buffer = addToBuffer(buffer, bufferSize, '\0'); // Terminate the string
 	Symbol *symbol = createStringSymbol(buffer); // Create a new symbol with the string
+	free(buffer); // Free the buffer
 	if(*prev==NULL){ // This is the first node
 		*head = symbol;
 	}
@@ -132,11 +164,29 @@ Stack * newStack(){
  * in the stack.
  */
 void push(Stack *stack, Symbol *symbol){
-	Symbol * insert = newSymbol(); //Create a new symbol with a dummy value
+	Symbol * insert = newSymbol(); //Create a new symbol
 	insert->value = strdup(symbol->value); //Copy the given value to the new symbol
 	insert->next = stack->top; //Adjust pointers
 	stack->top = insert; //Insert the symbol at the top of the stack
 	stack->count++; //Increment the value of count
+}
+
+/*
+ * This method pushes the given node directly to the stack.
+ * Unlike push(), it does not create a new node with 
+ * the value in the given node. This method is
+ * frequently used in conjunction with create*Symbol()
+ * as the Symbol argument, as those methods already creates
+ * a new Symbol *.
+ *
+ * Arguments => stack : The stack to push
+ * 		symbol : The Symbol * to be pushed
+ */
+
+void pushDirect(Stack *stack, Symbol *symbol){
+	symbol->next = stack->top; //Adjust the links
+	stack->top = symbol; //Insert at the top
+	stack->count++; //Increment node count
 }
 
 /*
@@ -151,6 +201,7 @@ Symbol * pop(Stack *stack){
 	Symbol *sym = stack->top; //Obtain the top pointer
 	stack->top = stack->top->next; //Shift the top pointer to the next node
 	stack->count--; //Decrement count
+	sym->next = NULL;
 	return sym;
 }
 
@@ -211,10 +262,8 @@ Symbol *tokenize(char *expression, size_t size){
 #ifdef SHOW_STEPS
 			printf("\n Brace or operator found : %c", currentSymbol);	
 #endif			
-			Symbol *operator;
-
-			operator = createCharacterSymbol(currentSymbol); // Create a symbol with the current operator
-			operator->next = NULL; // Reset the next pointer
+			Symbol *op = createCharacterSymbol(currentSymbol); // Create a symbol with the current operator
+			op->next = NULL; // Reset the next pointer
 
 			if(buffer!=NULL){ // The buffer contains a set of characters, so it needs to be added before the
 					  // present brace or operator
@@ -225,18 +274,18 @@ Symbol *tokenize(char *expression, size_t size){
 #ifdef SHOW_STEPS
 				printf("\n\tValue of buffer : %s", symbol->value);
 #endif
-				symbol->next = operator; // Make the brace or operator next member of the resulting expression
-				buffer = NULL; // Reset the buffer
+				symbol->next = op; // Make the brace or operator next member of the resulting expression
+				buffer = NULL;  // Reset the buffer
 				bufferSize = 0; // Reset the size
 			}
 			else{ // Buffer is NULL, so we just need to add the brace or operator
 				if(head==NULL) // Check the head
-					head = operator; // Set it
+					head = op; // Set it
 				else
-					prev->next = operator; // Link to the previous node
+					prev->next = op; // Link to the previous node
 			}
 
-			prev = operator; // At any case, the present brace or operator is going to be the last symbol of the list
+			prev = op; // At any case, the present brace or operator is going to be the last symbol of the list
 		}
 		else if(currentSymbol==' '){ // A space is found
 #ifdef SHOW_STEPS
@@ -481,7 +530,7 @@ Symbol * convertToPostFix(Symbol *head){
 	Symbol * output = NULL;
 	Symbol * prevOutput = NULL;
 
-	push(stack, createCharacterSymbol('('));
+	pushDirect(stack, createCharacterSymbol('('));
 
 	Symbol *temp = head;
 	while(temp->next!=NULL){
@@ -491,7 +540,9 @@ Symbol * convertToPostFix(Symbol *head){
 	temp = head;
 
 	while(stack->count!=0){
-		char *item = temp->value;
+		Symbol *current = createStringSymbol(temp->value); //Create a new symbol as we want a completely
+								   //separate output list						  
+		char *item = current->value;
 #ifdef SHOW_STEPS		
 		printf("\n Item : %s ", item);
 #endif
@@ -513,30 +564,31 @@ Symbol * convertToPostFix(Symbol *head){
 						prevOutput->next = sym;
 					prevOutput = sym;
 
-					push(stack, temp);
+					pushDirect(stack, current);
 				}
 				else{
 #ifdef SHOW_STEPS
 					printf(" Action : Push->Push");
 #endif
-					push(stack, sym);
-					push(stack, temp);
+					pushDirect(stack, sym);
+					pushDirect(stack, current);
 				}
 			}
 			else if((*x)=='('){
 #ifdef SHOW_STEPS
 				printf(" X_Type : ( Action : Push->Push");
 #endif
-				push(stack, sym);
-				push(stack, temp);
+				pushDirect(stack, sym);
+				pushDirect(stack, current);
 			}
 		}
 		else if(*item == ')'){
 #ifdef SHOW_STEPS
 			printf(" Type : ) Action : Continue pop ");
 #endif
+			Symbol *temp2;
 			while(*item != '('){
-				Symbol * temp2 = pop(stack);
+				temp2 = pop(stack);
 				item = temp2->value;
 				temp2->next = NULL;
 				if(*item!='('){
@@ -547,16 +599,18 @@ Symbol * convertToPostFix(Symbol *head){
 					prevOutput = temp2;
 				}
 			}
+			freeSymbols(temp2); // Release memory occupied by '('
+			freeSymbols(current); // Release current symbol, we don't need it here
 		}
 		else{
 #ifdef SHOW_STEPS
 			printf(" Type : Operand Action : Add");
 #endif
 			if(!output)
-				output = temp;
+				output = current;
 			else
-				prevOutput->next = temp;
-			prevOutput = temp;
+				prevOutput->next = current;
+			prevOutput = current;
 		}
 #ifdef SHOW_STEPS
 		printf(" StackSize : %d Stack : ", stack->count);
@@ -566,6 +620,7 @@ Symbol * convertToPostFix(Symbol *head){
 		temp = temp->next;
 	}
 	prevOutput->next = NULL;
+	freeStack(stack);
 	return output;
 }
 
@@ -578,6 +633,20 @@ typedef struct Variable{
 	double value; // Value of the variable
 	struct Variable *next; // Link to the next variable
 } Variable;
+
+/*
+ * Method to free a Variable list.
+ */
+
+void freeVariables(Variable *head){
+	Variable *temp = head, *backup = NULL; //Pointers for traversal
+	while(temp!=NULL){ //Traverse till the end
+		backup = temp; //Backup current node
+		temp = temp->next; //Shift the pointer to the next node
+		free(backup->name); //Free the name
+		free(backup); //Free current node
+	}
+}
 
 /*
  * This is basically a search method for
@@ -658,6 +727,35 @@ Variable * getValues(Symbol *start){
 }
 
 /*
+ * Method to count the number of digits in a double,
+ * including negative sign, decimal point and null
+ * terminator, with upto 9 digits precision after the
+ * decimal point.
+ */ 
+int countDigits(double n){
+	int digits = 1; //The digit counter
+	if(n<0){ //The number is negative
+		digits++; //Make room for the negative sign
+		n = -n; //Make the number positive
+	}
+	int intPart = (int)n; //Extract the integer part
+	while(intPart>0){ //Count the number of digits
+		intPart = intPart/10;
+		digits++;
+	}
+	double frac = n - (int)n; //Extract the fractional part
+	if(frac>0) //Make room for the decimal point
+		digits++;
+	int fracDigits = 0; //The precision controller
+	while(frac>0 && ++fracDigits<9){ 
+		intPart = (int)frac*10; //Extract the integer part shifting the point to right
+		frac = frac*10 - intPart; //Extract the fractional part
+		digits++; //Count the digits
+	}
+	return digits; //Return the number of digits
+}
+
+/*
  * This method evalutes a postfix expression
  * whose first symbol is passed as the argument.
  * Internally, this method first populates a Variable
@@ -677,11 +775,13 @@ void evaluatePostfix(Symbol *start){
 #ifdef SHOW_STEPS
 			printf("\n Pushed to stack %s \n", temp->value);
 #endif
-			push(stack, createStringSymbol(temp->value)); // Push it to the stack
+			pushDirect(stack, createStringSymbol(temp->value));// Push it to the stack
 		}
 		else{ // Current symbol is an operator
-			char *s1 = pop(stack)->value; // Pop second operand
-			char *s2 = pop(stack)->value; // Pop the first operand
+			Symbol *sym1 = pop(stack); //Keep the symbol pointers
+			Symbol *sym2 = pop(stack);
+			char *s1 = sym1->value; // Pop second operand
+			char *s2 = sym2->value; // Pop the first operand
 			char *err; // Error pointer
 			double x = strtod(s2, &err); // Try to parse first operand as a constant double
 			if(*err!=0){ // First operand does contain an alphabet, it's a variable
@@ -714,15 +814,16 @@ void evaluatePostfix(Symbol *start){
 #ifdef SHOW_STEPS
 			printf("\n\t Result : %g \n", res);
 #endif
-			int extra = 1 + (res<0); // Add an extra byte if for negative sign
-			int s;	// Size of the resulting string
+			int s = 0;	// Size of the resulting string
 			if(isnan(res) || isinf(res)) // 'nan' or 'inf' is going to bre stored in the string
 				s = sizeof(char)*4;
 			else if(res==0)
 				s = 2; // '0'
 			else
-				s = (int)((ceil(log10(fabs(res)))+extra)*sizeof(char)); // Find the number of digits in 'res'
-
+				s = countDigits(res); //Count the digits in the result
+#ifdef SHOW_STEPS
+			printf("\nDigits in %g is %d", res, countDigits(res));
+#endif
 			char *r = (char *)malloc(s); // Allocate memory for 'res'
 #ifdef SHOW_STEPS
 			printf("\n Malloced %d bytes \n",s);
@@ -731,14 +832,18 @@ void evaluatePostfix(Symbol *start){
 #ifdef SHOW_STEPS
 			printf("\n\t Pushing result back to the stack \n");
 #endif
-			push(stack, createStringSymbol(r)); // Push 'res' back in the stack
+			pushDirect(stack, createStringSymbol(r));// Push 'res' back in the stack
+			free(r); //Free the result string
+			freeSymbols(sym1); //Free the popped symbols
+			freeSymbols(sym2);
 		}
 		temp = temp->next; // Switch to the next symbol
 	}
 
 	char *err; // Error pointer, it should not be needed here
 	double res; // Result variable
-	char *val = pop(stack)->value; // Pop the remaining item from the stack
+	Symbol *s = pop(stack);
+	char *val = s->value; // Pop the remaining item from the stack
 
 	if(isalpha(*val) || *val=='_') // It is a variable, most probably the expression
 				       // contained only one variable
@@ -747,6 +852,9 @@ void evaluatePostfix(Symbol *start){
 		res = strtod(val, &err); // Parse the string to double
 
 	printf("\n Final result : %g\n", res);
+	freeSymbols(s); //Free the popped symbol
+	freeStack(stack); //Free the stack
+	freeVariables(values); //Free the variables
 }
 
 /*
@@ -774,6 +882,9 @@ int main()
 	printf("\n Postfix expression : ");
 	display(output); // Print the postfix expression
 	printf("\n");
-	evaluatePostfix(output);
+	evaluatePostfix(output); //Evaluate the postfix expression
+	freeSymbols(head); //Free the tokenized expression
+	freeSymbols(output); //Free the postfix expression
+	free(line); //Free the input string
 	return 0;
 }
