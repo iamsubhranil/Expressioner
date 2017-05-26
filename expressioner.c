@@ -83,15 +83,15 @@ char * addToBuffer(char *buffer, size_t *bufferSize, char add){
  * Returns => The number of characters read from stdin
  */
 size_t readline(char **buffer){
-		size_t read_size = 0; // The read counter
-		(*buffer) = (char *)malloc(sizeof(char)); // Allocate atleast one char of memory
-		char c = 1; // Temporary character to store stdin read
-		
-		while(c!=EOF && c!='\n'){ // Continue until the end of line
-				c = getc(stdin); // Read a character from stdin
-				(*buffer) = addToBuffer((*buffer), &read_size, c); // Add it to the buffer
-		}
-		return read_size; // Return the amount of characters read
+	size_t read_size = 0; // The read counter
+	(*buffer) = (char *)malloc(sizeof(char)); // Allocate atleast one char of memory
+	char c = 1; // Temporary character to store stdin read
+
+	while(c!=EOF && c!='\n'){ // Continue until the end of line
+		c = getc(stdin); // Read a character from stdin
+		(*buffer) = addToBuffer((*buffer), &read_size, c); // Add it to the buffer
+	}
+	return read_size; // Return the amount of characters read
 }
 
 /*
@@ -197,7 +197,7 @@ Symbol *tokenize(char *expression, size_t size){
 	Symbol *prev = NULL; // A temporary pointer to the previous node of the resulting expression
 	size_t count = 0; // The position of character that is scanned
 	char *buffer = NULL; // The buffer containing a symbol, or part of a symbol, which later
-			     //	gets added to the resulting list a Symbol *
+	//	gets added to the resulting list a Symbol *
 	size_t bufferSize = 0; // A variable denoting the size of the given buffer
 
 	printf("\n Tokenizing given expression..\n");
@@ -235,7 +235,7 @@ Symbol *tokenize(char *expression, size_t size){
 				else
 					prev->next = operator; // Link to the previous node
 			}
-			
+
 			prev = operator; // At any case, the present brace or operator is going to be the last symbol of the list
 		}
 		else if(currentSymbol==' '){ // A space is found
@@ -268,7 +268,7 @@ Symbol *tokenize(char *expression, size_t size){
 		}
 		count++; // Proceed to the next character
 	}
-	
+
 	if(buffer!=NULL){ // Check if we have the last symbol
 #ifdef SHOW_STEPS
 		printf("\n\tPrevious buffer exists!");
@@ -278,7 +278,7 @@ Symbol *tokenize(char *expression, size_t size){
 		printf("\n\tValue of buffer : %s", buffer);
 #endif
 	}
-		
+
 	return head; // Return the head of the resulting tokenized expression
 }
 
@@ -307,7 +307,7 @@ void checkSemantics(Symbol *head){
 	while(temp!=NULL){ // Continue until the last symbol
 		Symbol *current = temp; // Copy the current symbol
 		char cur = *(current->value); // Extract the first character of current symbol
-		
+
 		if(isalnum(cur) || cur=='.' || cur=='_'){ // The symbol is a variable or constant
 			if(isalpha(cur) || cur=='_'){ // The symbol should be a variable as it starts with an alphabet or '_'
 				if(strchr(current->value, '.')!=NULL){ // Variable identifer should not contain '.'
@@ -350,7 +350,7 @@ void checkSemantics(Symbol *head){
 				printf("\n Error : No operator specified between operands %s and %s !\n", prev->value, current->value);
 				exit(5);
 			}
-			
+
 		}
 		else if(isOperator(cur)){ // Current symbol is an operator
 			if(temp==head){ // But this is the start of the expression!
@@ -389,7 +389,7 @@ void checkSemantics(Symbol *head){
 			printf("\n Brace found : %c \n", cur);
 #endif		
 			if(cur=='(' || cur=='{' || cur=='['){ // It is an openning brace
-				current->value = "("; // Convert any type of openning brace to '('
+				current->value[0] = '('; // Convert any type of openning brace to '('
 				cur = '('; // Set the current variable accordingly
 				bracketCount++; // Increase the bracketCount to denote the openning
 			}
@@ -398,7 +398,7 @@ void checkSemantics(Symbol *head){
 					printf("\n Error : An expression cannot start with a closing brace!\n");
 					exit(8);
 				}
-				current->value = ")"; // Convert to ')'
+				current->value[0] = ')'; // Convert to ')'
 				cur = ')'; // Set the current variable
 				bracketCount--; // Decrease the bracketCount to denote the closing
 			}
@@ -407,12 +407,12 @@ void checkSemantics(Symbol *head){
 				// There is a previous symbol which is an operand or closing brace 
 				// and the present is an openning brace, so insert '*' operator 
 				// between them implicitly
-				
+
 				Symbol *mul = createCharacterSymbol('*'); // Create the operator
 				mul->next = prev->next; // Insert the present brace next to it
 				prev->next = mul; // Insert the operator before the present brace
 #ifdef SHOW_STEPS
-			printf("\n Brace operator : Inserted '*' between %s and %s \n", prev->value, current->value);
+				printf("\n Brace operator : Inserted '*' between %s and %s \n", prev->value, current->value);
 #endif		
 			}
 		}
@@ -438,7 +438,7 @@ void display(Symbol *head){
 		printf(", %s", temp->value); // Print the value of present node
 		temp = temp->next; // Proceed to next node
 	}
-	printf(" ] ");
+	printf(" ] "); // Print the enclosing brace
 }
 
 /*
@@ -639,7 +639,7 @@ Variable * getValues(Symbol *start){
 				printf("\n Enter the value of '%s' : ", temp->value); // Ask for the value
 				scanf("%lf", &var->value); // Load the value in the variable
 				var->next = NULL;
-	
+
 				if(head==NULL) // This is the first variable
 					head = var;
 				else // There is another variable
@@ -651,7 +651,7 @@ Variable * getValues(Symbol *start){
 				printf("\n Value found in index %g \n", getValue(head, temp->value));
 #endif
 		}
-		
+
 		temp = temp->next; // Switch to next Symbol
 	}
 	return head;
@@ -741,11 +741,11 @@ void evaluatePostfix(Symbol *start){
 	char *val = pop(stack)->value; // Pop the remaining item from the stack
 
 	if(isalpha(*val) || *val=='_') // It is a variable, most probably the expression
-					// contained only one variable
+				       // contained only one variable
 		res = getValue(values, val); // Acquire its value
 	else	// It is a constant
 		res = strtod(val, &err); // Parse the string to double
-	
+
 	printf("\n Final result : %g\n", res);
 }
 
@@ -754,26 +754,26 @@ void evaluatePostfix(Symbol *start){
  */
 int main()
 {
-    char *line; // A pointer to contain the user given string
-    size_t size, end = 1; // Variables for various use
-    printf(" Enter the expression : ");
-    size = readline(&line); // Get the expression
-    if(size==end){
-    	printf(" Enter an expression to continue!");
+	char *line; // A pointer to contain the user given string
+	size_t size, end = 1; // Variables for various use
+	printf(" Enter the expression : ");
+	size = readline(&line); // Get the expression
+	if(size==end){
+		printf(" Enter an expression to continue!");
 		return 1;
-    }
-    Symbol *head = tokenize(line, size); // Tokenize the given expression
-    printf("\n Tokenized expression : ");
-    display(head); // Display the tokenized expression
-    printf("\n");
-    checkSemantics(head); // Perform semantic check over the tokenized expression
-    printf("\n Corrected expression : ");
-    display(head); // Print the corrected expression
-    printf("\n");
-    Symbol *output = convertToPostFix(head); // Convert the expression to postfix
-    printf("\n Postfix expression : ");
-    display(output); // Print the postfix expression
-    printf("\n");
-    evaluatePostfix(output);
-    return 0;
+	}
+	Symbol *head = tokenize(line, size); // Tokenize the given expression
+	printf("\n Tokenized expression : ");
+	display(head); // Display the tokenized expression
+	printf("\n");
+	checkSemantics(head); // Perform semantic check over the tokenized expression
+	printf("\n Corrected expression : ");
+	display(head); // Print the corrected expression
+	printf("\n");
+	Symbol *output = convertToPostFix(head); // Convert the expression to postfix
+	printf("\n Postfix expression : ");
+	display(output); // Print the postfix expression
+	printf("\n");
+	evaluatePostfix(output);
+	return 0;
 }
