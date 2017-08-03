@@ -26,13 +26,13 @@ class BinaryTree:
 
 
 def isOperator(x):
-    return x == "+" or x == "-" or x == "*" or x == "/" or x == "^"
+    return x == "+" or x == "-" or x == "*" or x == "/" or x == "^" or x == "%"
 
 
 def priority(x):
     if x == "^":
         return 3
-    if x == "*" or x == "/":
+    if x == "*" or x == "/" or x == "%":
         return 2
     if x == "+" or x == "-":
         return 1
@@ -166,10 +166,10 @@ def getval(xstr):
         return float(xstr)
     except ValueError:
         try:
-            x = float(input("[INFO] Enter the value of %s : " % xstr))
+            x = float(input("[INPUT] Enter the value of %s : " % xstr))
             return x
         except ValueError:
-            print("[ERROR] %s is not a numeric value!" % x)
+            print("[ERROR] Enter a numeric value for %s!" % xstr)
             return getval(xstr)
 
 
@@ -193,15 +193,19 @@ def expf(a, b):
     return a ** b
 
 
+def modf(a, b):
+    return a % b
+
+
 def evaluate(postfixExp):
     tempStack = []
-    operations = {"+": sumf, "-": subf, "*": mulf, "/": divf, "^": expf}
+    operations = {"+": sumf, "-": subf, "*": mulf, "/": divf, "^": expf, "%": modf}
     for token in postfixExp:
         if isOperator(token):
             y = getval(tempStack.pop())
             x = getval(tempStack.pop())
             res = operations[token](x, y)
-            tempStack.append(res)
+            tempStack.append(str(res))
         else:
             tempStack.append(str(token))
     return getval(tempStack.pop())
@@ -223,3 +227,6 @@ else:
         print("[INFO] Result of expression : %g" % res)
     except IndexError as e:
         print("[ERROR] Given expression is invalid!")
+    except ZeroDivisionError:
+        print("[ERROR] Division by zero!")
+
